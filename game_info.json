@@ -1,0 +1,87 @@
+{
+  "Game Title": "My Restaurant! 🍴",
+  "Creator Name": "emma",
+  "Favorites Count": 3,
+  "Likes Count": 5,
+  "Dislikes Count": 5,
+  "Description": "🏗️ Create and run your own restaurant! ⭐🔔 Favorite for game updates! 🔔[[ READ BEFORE BUYING GAMEPASSES: ]][[ ❗❗❗ NO REFUNDS ❗❗❗ ]][[ Gamepasses will appear after you join a new server, it's a bug I'm looking into. ]]",
+  "Builder Club Required": "No",
+  "Thumbnail Source": "/Thumbs/Asset.ashx?assetId=10174&x=1280&y=720",
+  "Active Players": 2,
+  "Visits Count": 3178,
+  "Created Date": "15/10/2023",
+  "Updated Date": "16/11/2023",
+  "Server Size": 10,
+  "Game Passes": [
+    {
+      "image": "/Thumbs/Asset.ashx?assetId=10854&x=180&y=180",
+      "name": "VIP",
+      "price": "20"
+    },
+    {
+      "image": "/Thumbs/Asset.ashx?assetId=10855&x=180&y=180",
+      "name": "Bigger Restaurant!",
+      "price": "15"
+    },
+    {
+      "image": "/Thumbs/Asset.ashx?assetId=10856&x=180&y=180",
+      "name": "Auto Collect Money!",
+      "price": "13"
+    },
+    {
+      "image": "/Thumbs/Asset.ashx?assetId=10857&x=180&y=180",
+      "name": "Jukebox!",
+      "price": "13"
+    },
+    {
+      "image": "/Thumbs/Asset.ashx?assetId=10858&x=180&y=180",
+      "name": "Starter Bundle!",
+      "price": "13"
+    },
+    {
+      "image": "/Thumbs/Asset.ashx?assetId=10859&x=180&y=180",
+      "name": "Rich Customers!",
+      "price": "15"
+    },
+    {
+      "image": "/Thumbs/Asset.ashx?assetId=10860&x=180&y=180",
+      "name": "Luxury Appliance Bundle!",
+      "price": "45"
+    },
+    {
+      "image": "/Thumbs/Asset.ashx?assetId=10861&x=180&y=180",
+      "name": "High Tech Bundle!",
+      "price": "8"
+    },
+    {
+      "image": "/Thumbs/Asset.ashx?assetId=10862&x=180&y=180",
+      "name": "Money Tree!",
+      "price": "15"
+    },
+    {
+      "image": "/Thumbs/Asset.ashx?assetId=10863&x=180&y=180",
+      "name": "Golden Wishing Well!",
+      "price": "10"
+    },
+    {
+      "image": "/Thumbs/Asset.ashx?assetId=10864&x=180&y=180",
+      "name": "Royal Bundle!",
+      "price": "15"
+    },
+    {
+      "image": "/Thumbs/Asset.ashx?assetId=10865&x=180&y=180",
+      "name": "Future Restaurant Theme!",
+      "price": "8"
+    },
+    {
+      "image": "/Thumbs/Asset.ashx?assetId=10866&x=180&y=180",
+      "name": "Gamer Set!",
+      "price": "25"
+    },
+    {
+      "image": "/Thumbs/Asset.ashx?assetId=10867&x=180&y=180",
+      "name": "Auto-Seat Customers!",
+      "price": "25"
+    }
+  ]
+}
