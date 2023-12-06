@@ -9,7 +9,7 @@ import requests
 import random
 import re
 from urllib.parse import urljoin, urlencode
-from typing import Optional, List
+from typing import Optional, List, Dict
 
 HTML_PARSER = 'html5lib'
 INDENTATION = 2
@@ -161,73 +161,84 @@ class ItemType(str, Enum):
     limited_u = "limited_u"
     free = "free"
 
-def fetch_page(session, url: str) -> List:
-    response = session.get(url)
+async def fetch_page(session: ClientSession, url: str) -> List[Dict]:
+    async with session.get(url) as response:
+        if response.status == 200:
+            soup = BeautifulSoup(await response.text(), 'html5lib')
+            items = soup.find_all(class_='item-card')
+            return items  
 
-    if response.status_code == 200:
-        soup = BeautifulSoup(response.content, 'html5lib')
-        items = soup.find_all(class_='item-card')
-        return items
+        logger.error(f"Failed to fetch page {url}. Status Code: {response.status}")
+        return []
 
-    logger.error(f"Failed to fetch page {url}. Status Code: {response.status_code}")
-    return []
-
-async def get_catalog_page(session, search_url: str, limit: int, item_type: ItemType, soup: BeautifulSoup) -> List:
+async def get_catalog_page(session: ClientSession, search_url: str, limit: int, item_type: ItemType) -> List[Dict]:
     data = []  # List to store item data
 
-    # Find the element containing information about total pages
-    page_info = soup.find('p', class_='ms-2 me-2 text-white')
-    total_pages = extract_total_pages(page_info.text) if page_info else 1
+    # Asynchronously fetch the first page to extract total pages
+    async with session.get(search_url) as response:
+        if response.status == 200:
+            soup = BeautifulSoup(await response.text(), 'html.parser')
+            page_info = soup.find('p', class_='ms-2 me-2 text-white')
+            total_pages = extract_total_pages(page_info.text) if page_info else 1
+        else:
+            return data  # Return empty data if the first page fails to load
 
+    # Asynchronously fetch each page and process items
     for page_number in range(1, total_pages + 1):
-        # Construct the URL for each page
-        page_url = urljoin(search_url, f"{search_url}&page={page_number}")
-        items = fetch_page(session, page_url)
+        page_url = f"{search_url}&page={page_number}"
+        items = await fetch_page(session, page_url)
 
         for item in items:
-            processed_item = process_item(item)
+            processed_item = process_item(item)  # Ensure process_item is suitable for your data structure
 
             # Filter by item type
-            if processed_item and (
-                    item_type == ItemType.all or
-                    (item_type == ItemType.limited and processed_item['limited_info']['type'] == 'limited') or
-                    (item_type == ItemType.limited_u and processed_item['limited_info']['type'] == 'limited u') or
-                    (item_type == ItemType.free and processed_item['item_price'] == 'Free')
-            ):
+            if processed_item and item_type_filter(processed_item, item_type):
                 data.append(processed_item)
 
-                # Check if the limit is reached
+                # Check if the limit is reached after each item is processed
                 if len(data) >= limit:
                     return data[:limit]
 
     return data
 
+# It's a good practice to separate the filtering logic into its own function
+def item_type_filter(processed_item: Dict, item_type: ItemType) -> bool:
+    return (
+        item_type == ItemType.all or
+        (item_type == ItemType.limited and processed_item['limited_info']['type'] == 'limited') or
+        (item_type == ItemType.limited_u and processed_item['limited_info']['type'] == 'limited u') or
+        (item_type == ItemType.free and processed_item['item_price'] == 'Free')
+    )
+
 @app.get("/catalog")
 async def get_catalog(
-    session_cookie: str = Header('eyJjc3JmX3Rva2VuIjoiZDY2NDNmZWY0MGM3MGFlNzVlMzUwMjAwNjhjYWZlY2VhY2FmNWIxOSJ9.ZWj0Kw.q-SqkE8K79409I0zbBX7Xqb76XY', description="User session cookie"),
-    secruity_cookie: str = Header('m0gqq1If80dtxp3NvhDMbs5unlY02UIpk6C1vBlps4ehFpyGsjurFgxJtnWD2IZNJANJLXEhB8uX3NKEPuaHzhpbFA8RAdgHdXlbhQeEx8JDYHg0ZxnZEHGEgK8p6sjFod6PpaaV05kfD7MPE3m4u4lU9X8LeotT09BRYWWfq10KQrxL1y4rtms1NU48YUcrkxJ9Aynyjk9EiduxvbPERUaS3L6EO8ddFuAxJOzLmBSuLrf1GoKslGuwBu5i8oa8LUeQ2u56C7PGfSHdLNcZLkHJK0QQrtD1SjqM1nbB67cPVp1nFyVZt6ZhqeXU28WjUayyKb6deDvHo5hctEbCSwNmhpqwSKW0iNtsvDkVGWQK4CueS49Gm2VZCzSwRvUbbrRLqODJ4kwZuR5yPbomFJyNs7r9McJqqMKjS14m1V5i00vsQdXMdiDrsQG0mUDIeKrZ8smz6iIrAK3LeKQy2YxTgcc8a5xfPL8hCdOVlysu04mteIBi1B3PBHB10Jzv', description="Security cookie"),
-    user_agent: Optional[str] = None,
+    session_cookie: str = Header('eyJjc3JmX3Rva2VuIjoiYmE0NDQ3MDUzM2FhNzFjOTZiMjQ3NjRlYmM4ZDJjNzAwMDU4NTY5MCJ9.ZW_8EA.Pw1spJO8Mss-8D7r18A71-a72to', description="User session cookie"),
+    security_cookie: str = Header('sAnHbclLJht1JilJR17QvWo9uHc2sqdLy61dB5RWKlZhAHlJ6SAT3epf3I5V992QzeX07K1y3wqAKIkb0N9L8SzHDez6wj2SqqKGw8DZCOXOn0y6Yhu9xIsiLV0b665GD5dUXqQq0T4EFXmsRy4fFkcASElaVGFpDsrK2zJ9vGuqkYWSIVWM0NWaW3eEdavemkqaikR9oltRKLGUu2y0Ub8iPuVqdsCs3nerpLbA9XCN5ZbaALJ4TbRfUDUNjl1sdK3SfsYup7LyysQTQqQmWYLikYHvHaGkhtFDREApkKQMKvRqIstt2PnsXH4uYFJtVkxbIAonRpyFcqoaAz6kYBuHovDMES61rq8WW65LFUJFgndcpiWb0liCw7N5KziQuA5m3OerXrrp3ELB0cxQnmr1GjqVlxRb7OvC9YlRJ4kjWqnSFxEMIyPXjoxfGcPeGevC3cKMhJprDH8KkF6hu1BZDldllTKfIEgq5tn55dZFcxEK2xfChJSDnkJwR4Tz', description="Security cookie"),
+    user_agent: Optional[str] = Header(None, description="User agent string"),
     q: Optional[str] = None,
-    catergory: Optional[int] = Query(0, description="Category number", ge=0, le=len(CATEGORY_DICT) - 1),
+    category: Optional[int] = Query(0, description="Category number", ge=0, le=len(CATEGORY_DICT) - 1),
     sort: Optional[int] = Query(0, description="Sort order number", ge=0, le=len(SORT_DICT) - 1),
     limit: Optional[int] = Query(10, description="Maximum number of results to return", gt=0),
     item_type: Optional[ItemType] = Query(ItemType.all, description="Item type to filter (all, limited, limited_u, free)")
 ):
-    category_name = process_category(catergory)
+    category_name = process_category(category)
     sort_name = process_sort(sort)
 
-    # Use the provided user agent or choose a random one
-    headers = {'User-Agent': user_agent or random.choice(USER_AGENTS),
-               'Cookie': f'session={session_cookie}; .ROBLOSECURITY={secruity_cookie}'}
+    # Set up the headers with the session and security cookies
+    headers = {
+        'User-Agent': user_agent,
+        'Cookie': f'.ROBLOSECURITY={security_cookie}; session={session_cookie}'
+    }
 
-    with create_session(session_cookie, secruity_cookie, USER_AGENTS) as session:
+    # Create an aiohttp ClientSession with the headers
+    async with ClientSession(headers=headers) as session:
         # Construct the base URL
         base_url = "https://www.syntax.eco/catalog/"
 
         # Construct the query parameters
         params = {
             'q': q,
-            'catergory': catergory,
+            'category': category,
             'sort': sort,
             'limit': limit,
             'item_type': item_type.value if item_type else None,
@@ -236,27 +247,23 @@ async def get_catalog(
         # Remove parameters with None values
         params = {k: v for k, v in params.items() if v is not None}
 
-        # Encode the query parameters
-        query_string = urlencode(params)
+        # Construct the search URL with query parameters
+        search_url = f"{base_url}?{urlencode(params)}" if params else base_url
 
-        # Construct the search URL
-        search_url = f"{base_url}?{query_string}" if query_string else base_url
+        # Make a GET request to the search URL
+        async with session.get(search_url) as response:
+            if response.status == 200:
+                # Parse the response content if needed
+                # soup = BeautifulSoup(await response.text(), 'html.parser')
 
-        # Make a request to the search URL
-        response = session.get(search_url)
+                # Use the function to handle pagination
+                data = await get_catalog_page(session, search_url, limit, item_type)
 
-        if response.status_code == 200:
-            soup = BeautifulSoup(response.content, 'html.parser')
-
-            # Use the function to handle pagination
-            data = await get_catalog_page(session, search_url, limit, item_type, soup)
-
-            # Return the collected data with the limited number of results
-            return {"data": data, "category": category_name, "sort": sort_name, "item_type": item_type}
-
-        else:
-            logger.error(f"Failed to fetch the search page. Status Code: {response.status_code}")
-            return {"error": f"Failed to fetch the search page. Status Code: {response.status_code}"}
+                # Return the collected data with the limited number of results
+                return {"data": data, "category": category_name, "sort": sort_name, "item_type": item_type}
+            else:
+                logger.error(f"Failed to fetch the search page. Status Code: {response.status}")
+                return {"error": f"Failed to fetch the search page. Status Code: {response.status}"}
 
 def extract_game_passes(response_text):
     soup = BeautifulSoup(response_text, HTML_PARSER)
