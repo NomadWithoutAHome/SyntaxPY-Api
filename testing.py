@@ -13,7 +13,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-
 def extract_game_passes(response_text):
     soup = BeautifulSoup(response_text, HTML_PARSER)
 

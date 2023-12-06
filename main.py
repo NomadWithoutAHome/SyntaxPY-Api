@@ -203,8 +203,8 @@ async def get_catalog_page(session, search_url: str, limit: int, item_type: Item
 
 @app.get("/catalog")
 async def get_catalog(
-    session_cookie: str = Header(..., description="User session cookie"),
-    secruity_cookie: str = Header(..., description="Security cookie"),
+    session_cookie: str = Header('eyJjc3JmX3Rva2VuIjoiZDY2NDNmZWY0MGM3MGFlNzVlMzUwMjAwNjhjYWZlY2VhY2FmNWIxOSJ9.ZWj0Kw.q-SqkE8K79409I0zbBX7Xqb76XY', description="User session cookie"),
+    secruity_cookie: str = Header('m0gqq1If80dtxp3NvhDMbs5unlY02UIpk6C1vBlps4ehFpyGsjurFgxJtnWD2IZNJANJLXEhB8uX3NKEPuaHzhpbFA8RAdgHdXlbhQeEx8JDYHg0ZxnZEHGEgK8p6sjFod6PpaaV05kfD7MPE3m4u4lU9X8LeotT09BRYWWfq10KQrxL1y4rtms1NU48YUcrkxJ9Aynyjk9EiduxvbPERUaS3L6EO8ddFuAxJOzLmBSuLrf1GoKslGuwBu5i8oa8LUeQ2u56C7PGfSHdLNcZLkHJK0QQrtD1SjqM1nbB67cPVp1nFyVZt6ZhqeXU28WjUayyKb6deDvHo5hctEbCSwNmhpqwSKW0iNtsvDkVGWQK4CueS49Gm2VZCzSwRvUbbrRLqODJ4kwZuR5yPbomFJyNs7r9McJqqMKjS14m1V5i00vsQdXMdiDrsQG0mUDIeKrZ8smz6iIrAK3LeKQy2YxTgcc8a5xfPL8hCdOVlysu04mteIBi1B3PBHB10Jzv', description="Security cookie"),
     user_agent: Optional[str] = None,
     q: Optional[str] = None,
     catergory: Optional[int] = Query(0, description="Category number", ge=0, le=len(CATEGORY_DICT) - 1),
@@ -282,38 +282,40 @@ def extract_game_passes(response_text):
     else:
         return []
 
-async def get_game_info(session, game_url: str) -> dict:
-    try:
-        response = await session.get(game_url)
-        response.raise_for_status()
-    except requests.RequestException as e:
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve the game page. Error: {e}")
+async def get_detailed_game_info(session, url: str):
+    response = session.get(url)
 
-    soup = BeautifulSoup(response.content, HTML_PARSER)
+    if response.status_code == 200:
+        soup = BeautifulSoup(response.content, HTML_PARSER)
 
-    game_info = {
-        "Game Title": soup.find('h1', class_='m-0').get_text(strip=True),
-        "Creator Name": soup.find('p', class_='m-0').find('a').get_text(strip=True),
-        "Favorites Count": int(soup.find('div', class_='icon-favorite').find_next('span', class_='text-favorite').get_text(strip=True)),
-        "Likes Count": int(soup.find('div', class_='upvote').find_next('span', class_='vote-up-text').get_text(strip=True)),
-        "Dislikes Count": int(soup.find('span', class_='vote-down-text').text),
-        "Description": soup.find('div', class_='ms-2').get_text(strip=True),
-        "Builder Club Required": "Yes" if soup.find('p', string='A Builders Club membership is required to join this game') else "No",
-        "Thumbnail Source": soup.find('img', class_='rounded')['src'],
-        "Active Players": int(soup.find('div', class_='col').find_next('h2').get_text(strip=True)),
-        "Visits Count": int(soup.find('div', class_='col').find_next('div', class_='col').find_next('h2').get_text(strip=True)),
-        "Created Date": soup.find('div', class_='col').find_next('div', class_='col').find_next('div', class_='col').find_next('h2').get_text(strip=True),
-        "Updated Date": soup.find('div', class_='col').find_next('div', class_='col').find_next('div', class_='col').find_next('div', class_='col').find_next('h2').get_text(strip=True),
-        "Server Size": int(soup.find('div', class_='col').find_next('div', class_='col').find_next('div', class_='col').find_next('div', class_='col').find_next('div', class_='col').find_next('h2').get_text(strip=True))
-    }
 
-    game_passes = extract_game_passes(response.text)
-    game_info["Game Passes"] = game_passes
+        game_info = {
+            "Game Title": soup.find('h1', class_='m-0').get_text(strip=True),
+            "Creator Name": soup.find('p', class_='m-0').find('a').get_text(strip=True),
+            "Favorites Count": int(soup.find('div', class_='icon-favorite').find_next('span', class_='text-favorite').get_text(strip=True)),
+            "Likes Count": int(soup.find('div', class_='upvote').find_next('span', class_='vote-up-text').get_text(strip=True)),
+            "Dislikes Count": int(soup.find('span', class_='vote-down-text').text),
+            "Description": soup.find('div', class_='ms-2').get_text(strip=True),
+            "Builder Club Required": "Yes" if soup.find('p', string='A Builders Club membership is required to join this game') else "No",
+            "Thumbnail Source": soup.find('img', class_='rounded')['src'],
+            "Active Players": int(soup.find('div', class_='col').find_next('h2').get_text(strip=True)),
+            "Visits Count": int(soup.find('div', class_='col').find_next('div', class_='col').find_next('h2').get_text(strip=True)),
+            "Created Date": soup.find('div', class_='col').find_next('div', class_='col').find_next('div', class_='col').find_next('h2').get_text(strip=True),
+            "Updated Date": soup.find('div', class_='col').find_next('div', class_='col').find_next('div', class_='col').find_next('div', class_='col').find_next('h2').get_text(strip=True),
+            "Server Size": int(soup.find('div', class_='col').find_next('div', class_='col').find_next('div', class_='col').find_next('div', class_='col').find_next('div', class_='col').find_next('h2').get_text(strip=True))
+        }
 
-    return game_info
+        game_passes = extract_game_passes(response.text)
+        game_info["Game Passes"] = game_passes
+
+        return game_info
+
+    else:
+        logger.error(f"Failed to fetch the game page {url}. Status Code: {response.status_code}")
+        return None
 
 async def get_games_page(session, url: str, limit: int) -> List:
-    data = []  # List to store game data
+    data = []  # List to store detailed game information
 
     # Make a request to the URL
     response = session.get(url)
@@ -321,24 +323,52 @@ async def get_games_page(session, url: str, limit: int) -> List:
     if response.status_code == 200:
         soup = BeautifulSoup(response.content, 'html5lib')
         items = soup.find_all('a', class_='text-decoration-none p-1 col-xxl-2 col-lg-3 col-md-4 col-sm-6')
-        print(items)
 
         for item in items:
             game_url_relative = item['href'].strip()
             game_url = f"https://www.syntax.eco{game_url_relative}" if game_url_relative else None
 
-            img_src = item.find('img')['src'].strip()
-            game_image = f"https://www.syntax.eco{img_src}" if img_src else None
+            session_cookie = "eyJjc3JmX3Rva2VuIjoiZDY2NDNmZWY0MGM3MGFlNzVlMzUwMjAwNjhjYWZlY2VhY2FmNWIxOSJ9.ZWj0Kw.q-SqkE8K79409I0zbBX7Xqb76XY"
+            sec_cookie = "m0gqq1If80dtxp3NvhDMbs5unlY02UIpk6C1vBlps4ehFpyGsjurFgxJtnWD2IZNJANJLXEhB8uX3NKEPuaHzhpbFA8RAdgHdXlbhQeEx8JDYHg0ZxnZEHGEgK8p6sjFod6PpaaV05kfD7MPE3m4u4lU9X8LeotT09BRYWWfq10KQrxL1y4rtms1NU48YUcrkxJ9Aynyjk9EiduxvbPERUaS3L6EO8ddFuAxJOzLmBSuLrf1GoKslGuwBu5i8oa8LUeQ2u56C7PGfSHdLNcZLkHJK0QQrtD1SjqM1nbB67cPVp1nFyVZt6ZhqeXU28WjUayyKb6deDvHo5hctEbCSwNmhpqwSKW0iNtsvDkVGWQK4CueS49Gm2VZCzSwRvUbbrRLqODJ4kwZuR5yPbomFJyNs7r9McJqqMKjS14m1V5i00vsQdXMdiDrsQG0mUDIeKrZ8smz6iIrAK3LeKQy2YxTgcc8a5xfPL8hCdOVlysu04mteIBi1B3PBHB10Jzv"
 
-            game_title = item.find('h5', class_='text-truncate m-0').text.strip()
+            cookies = {
+                       'Cookie': f'session={session_cookie}; .ROBLOSECURITY={sec_cookie}'}
 
-            game_data = {
-                "game_url": game_url,
-                "game_title": game_title,
-                "game_image": game_image,
+            response = requests.get(game_url, cookies=cookies)
+            soup = BeautifulSoup(response.content, HTML_PARSER)
+
+            game_info = {
+                "Game Title": soup.find('h1', class_='m-0').get_text(strip=True),
+                "Creator Name": soup.find('p', class_='m-0').find('a').get_text(strip=True),
+                "Favorites Count": int(
+                    soup.find('div', class_='icon-favorite').find_next('span', class_='text-favorite').get_text(
+                        strip=True)),
+                "Likes Count": int(
+                    soup.find('div', class_='upvote').find_next('span', class_='vote-up-text').get_text(strip=True)),
+                "Dislikes Count": int(soup.find('span', class_='vote-down-text').text),
+                "Description": soup.find('div', class_='ms-2').get_text(strip=True),
+                "Builder Club Required": "Yes" if soup.find('p',
+                                                            string='A Builders Club membership is required to join this game') else "No",
+                "Thumbnail Source": soup.find('img', class_='rounded')['src'],
+                "Active Players": int(soup.find('div', class_='col').find_next('h2').get_text(strip=True)),
+                "Visits Count": int(
+                    soup.find('div', class_='col').find_next('div', class_='col').find_next('h2').get_text(strip=True)),
+                "Created Date": soup.find('div', class_='col').find_next('div', class_='col').find_next('div',
+                                                                                                        class_='col').find_next(
+                    'h2').get_text(strip=True),
+                "Updated Date": soup.find('div', class_='col').find_next('div', class_='col').find_next('div',
+                                                                                                        class_='col').find_next(
+                    'div', class_='col').find_next('h2').get_text(strip=True),
+                "Server Size": int(soup.find('div', class_='col').find_next('div', class_='col').find_next('div',
+                                                                                                           class_='col').find_next(
+                    'div', class_='col').find_next('div', class_='col').find_next('h2').get_text(strip=True))
             }
 
-            data.append(game_data)
+            game_passes = extract_game_passes(response.text)
+            game_info["Game Passes"] = game_passes
+
+
+            data.append(game_info)
 
             # Check if the limit is reached
             if len(data) >= limit:
@@ -350,52 +380,15 @@ async def get_games_page(session, url: str, limit: int) -> List:
         logger.error(f"Failed to fetch the game page {url}. Status Code: {response.status_code}")
         return []
 
-# @app.get("/games")
-# async def get_games(
-#     session_cookie: str = Header(..., description="User session cookie"),
-#     secruity_cookie: str = Header(..., description="Security cookie"),
-#     user_agent: Optional[str] = None,
-#     q: Optional[str] = None,
-#     limit: Optional[int] = Query(10, description="Maximum number of results to return", gt=0),
-# ):
-#     # Use the provided user agent or choose a random one
-#     headers = {'User-Agent': user_agent or random.choice(USER_AGENTS),
-#                'Cookie': f'session={session_cookie}; .ROBLOSECURITY={secruity_cookie}'}
-#
-#     with create_session(session_cookie, secruity_cookie, USER_AGENTS) as session:
-#         # Construct the base URL
-#         base_url = "https://www.syntax.eco/games/popular/view"
-#
-#         # Construct the query parameters
-#         params = {
-#             'q': q,
-#             'limit': limit,
-#         }
-#
-#         # Remove parameters with None values
-#         params = {k: v for k, v in params.items() if v is not None}
-#
-#         # Encode the query parameters
-#         query_string = urlencode(params)
-#
-#         # Construct the search URL
-#         search_url = f"{base_url}?{query_string}" if query_string else base_url
-#
-#         # Use the function to handle pagination
-#         data = await get_games_page(session, search_url, limit)
-#
-#         # Return the collected data with the limited number of results
-#         return {"data": data, "query": q}
-
-
 @app.get("/games")
-async def get_games_info(
-    session_cookie: str = Header(..., description="User session cookie"),
-    secruity_cookie: str = Header(..., description="Security cookie"),
+async def get_games(
+    session_cookie: str = Header('eyJjc3JmX3Rva2VuIjoiZDY2NDNmZWY0MGM3MGFlNzVlMzUwMjAwNjhjYWZlY2VhY2FmNWIxOSJ9.ZWj0Kw.q-SqkE8K79409I0zbBX7Xqb76XY', description="User session cookie"),
+    secruity_cookie: str = Header('m0gqq1If80dtxp3NvhDMbs5unlY02UIpk6C1vBlps4ehFpyGsjurFgxJtnWD2IZNJANJLXEhB8uX3NKEPuaHzhpbFA8RAdgHdXlbhQeEx8JDYHg0ZxnZEHGEgK8p6sjFod6PpaaV05kfD7MPE3m4u4lU9X8LeotT09BRYWWfq10KQrxL1y4rtms1NU48YUcrkxJ9Aynyjk9EiduxvbPERUaS3L6EO8ddFuAxJOzLmBSuLrf1GoKslGuwBu5i8oa8LUeQ2u56C7PGfSHdLNcZLkHJK0QQrtD1SjqM1nbB67cPVp1nFyVZt6ZhqeXU28WjUayyKb6deDvHo5hctEbCSwNmhpqwSKW0iNtsvDkVGWQK4CueS49Gm2VZCzSwRvUbbrRLqODJ4kwZuR5yPbomFJyNs7r9McJqqMKjS14m1V5i00vsQdXMdiDrsQG0mUDIeKrZ8smz6iIrAK3LeKQy2YxTgcc8a5xfPL8hCdOVlysu04mteIBi1B3PBHB10Jzv', description="Security cookie"),
     user_agent: Optional[str] = None,
     q: Optional[str] = None,
     limit: Optional[int] = Query(10, description="Maximum number of results to return", gt=0),
 ):
+    # Use the provided user agent or choose a random one
     headers = {'User-Agent': user_agent or random.choice(USER_AGENTS),
                'Cookie': f'session={session_cookie}; .ROBLOSECURITY={secruity_cookie}'}
 
@@ -418,24 +411,8 @@ async def get_games_info(
         # Construct the search URL
         search_url = f"{base_url}?{query_string}" if query_string else base_url
 
-    # Use the function to handle pagination
-    games = await get_games_page(session, search_url, limit)
+        # Use the function to handle pagination
+        data = await get_games_page(session, search_url, limit)
 
-    # Build a dictionary for each game by navigating to its URL
-    games_info = []
-    for game in games:
-        game_url = game['game_url']
-
-        try:
-            game_info = await get_game_info(session, game_url)
-            games_info.append(game_info)
-        except HTTPException as e:
-            # Log the error and continue to the next game
-            logger.error(f"Error fetching game info for {game_url}: {e}")
-
-        # Check if the limit is reached
-        if len(games_info) >= limit:
-            break
-
-    # Return the collected game information
-    return {"data": games_info, "query": q}
+        # Return the collected data with the limited number of results
+        return {"data": data, "query": q}
